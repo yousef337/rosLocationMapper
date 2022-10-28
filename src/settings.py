@@ -1,4 +1,2 @@
-geojsondir = '/src/locationMapper/src/locs'
-nodeName = 'locationMapperBot'
-botListernNodeName = 'robotTopicListener'
-robotPoseNodeName = 'turtle1/pose'
+geojsondir = '/src/locationMapper/locs'
+serviceName = 'locationMapperBot'

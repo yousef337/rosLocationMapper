@@ -5,11 +5,7 @@ from std_msgs.msg import String
 from turtlesim.msg import Pose
 from geojson import Feature, Polygon, load
 from os import listdir, getcwd
-
-def sendToBot(msg: str):
-    pub = rospy.Publisher(settings.botListernNodeName, String, queue_size=10)
-    if not rospy.is_shutdown():
-        pub.publish(msg)
+from .srv import locationMapper, locationMapperResponse, locationMapperRequest
 
 
 def getRoomsData():
@@ -43,14 +39,19 @@ def isPointInsidePolygon(point, polygonCords) -> bool:
     return inside
 
 
-def mapToRoom(location: Pose):
+def mapToRoom(location: locationMapperRequest) -> locationMapperResponse:
+    response: locationMapperResponse
     roomsInfo = getRoomsData()
+
     for i in roomsInfo.keys():
         if (isPointInsidePolygon((location.x, location.y), roomsInfo[i])):
-            print("IN")
-            sendToBot(i)
-            break
+            response.room = i
+            return response
 
-rospy.init_node(settings.nodeName, anonymous=True)
-rospy.Subscriber(settings.robotPoseNodeName, Pose, mapToRoom)
+    response.room = "Not Found"
+    return response
+
+
+rospy.init_node(settings.serviceName, anonymous=True)
+mapper = rospy.Service(settings.serviceName, locationMapper, mapToRoom)
 rospy.spin()
