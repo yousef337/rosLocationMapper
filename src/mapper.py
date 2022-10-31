@@ -2,10 +2,9 @@
 import rospy
 import settings
 from std_msgs.msg import String
-from turtlesim.msg import Pose
 from geojson import Feature, Polygon, load
 from os import listdir, getcwd
-from .srv import locationMapper, locationMapperResponse, locationMapperRequest
+from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest
 
 
 def getRoomsData():
@@ -40,11 +39,11 @@ def isPointInsidePolygon(point, polygonCords) -> bool:
 
 
 def mapToRoom(location: locationMapperRequest) -> locationMapperResponse:
-    response: locationMapperResponse
+    response: locationMapperResponse = locationMapperResponse()
     roomsInfo = getRoomsData()
 
     for i in roomsInfo.keys():
-        if (isPointInsidePolygon((location.x, location.y), roomsInfo[i])):
+        if (isPointInsidePolygon((location.point.x, location.point.y), roomsInfo[i])):
             response.room = i
             return response
 

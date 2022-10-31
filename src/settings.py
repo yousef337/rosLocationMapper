@@ -1,2 +1,2 @@
 geojsondir = '/src/locationMapper/locs'
-serviceName = 'locationMapperBot'
+serviceName = 'locationMapperService'
