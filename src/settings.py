@@ -1,2 +1,4 @@
 geojsondir = '/src/locationMapper/locs'
-serviceName = 'locationMapperService'
+serviceName = 'locationRoomMapperService'
+locationServiceName = 'locationMapperService'
+roomServiceName = 'roomMapperService'

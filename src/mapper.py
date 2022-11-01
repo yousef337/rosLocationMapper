@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import rospy
 import settings
-from std_msgs.msg import String
 from geojson import Feature, Polygon, load
 from os import listdir, getcwd
-from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest
-
+from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest, roomMapper, roomMapperResponse, roomMapperRequest
+from statistics import mean
 
 def getRoomsData():
     """Return dict of names and coordinates of the room"""
@@ -51,6 +50,20 @@ def mapToRoom(location: locationMapperRequest) -> locationMapperResponse:
     return response
 
 
+def mapToLoc(request: roomMapperRequest) -> roomMapperResponse:
+    response: roomMapperResponse = roomMapperResponse()
+    roomInfo = getRoomsData()[request.room]
+
+    if not roomInfo:
+        return response
+
+    response.point.x = mean(map(lambda l: l[0] , roomInfo))
+    response.point.y = mean(map(lambda l: l[1] , roomInfo))
+
+    return response
+
+
 rospy.init_node(settings.serviceName, anonymous=True)
-mapper = rospy.Service(settings.serviceName, locationMapper, mapToRoom)
+locMapper = rospy.Service(settings.locationServiceName, locationMapper, mapToRoom)
+roomMapper = rospy.Service(settings.roomServiceName, roomMapper, mapToLoc)
 rospy.spin()
