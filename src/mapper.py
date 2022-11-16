@@ -2,11 +2,12 @@
 import rospy
 import settings
 from geojson import Feature, Polygon, load
-from math import sin, cos, abs
+from math import sin, cos
 from os import listdir, getcwd
 from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest, roomMapper, roomMapperResponse, roomMapperRequest, doorMapper, doorMapperResponse, doorMapperRequest
 from statistics import mean 
 import angles
+from scipy.spatial.transform import Rotation
 
 def getRoomsData():
     """Return dict of names and coordinates of the room"""
@@ -80,7 +81,11 @@ def distance(p1, p2):
 
 def doorToMove(request: doorMapperRequest) -> doorMapperResponse:
     response: doorMapperResponse = doorMapperResponse()
-    projTheta = request.orientation.x # TBF
+
+    quatRotation = Rotation.from_quat(request.orientation)
+    eulerRotation = quatRotation.as_euler('xyz', degrees=False)
+    projTheta = eulerRotation[2]
+
     pose = (request.position.x, request.position.y)
     poseProj = (pose[0] + settings.VISION_RANGE * cos(projTheta), pose[1] + settings.VISION_RANGE * sin(projTheta))
     
