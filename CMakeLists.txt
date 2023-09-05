@@ -61,6 +61,7 @@ add_service_files(
   locationMapper.srv
   roomMapper.srv
   doorMapper.srv
+  doorObjectMapper.srv
 )
 
 ## Generate actions in the 'action' folder

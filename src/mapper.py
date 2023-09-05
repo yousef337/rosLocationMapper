@@ -2,9 +2,9 @@
 import rospy
 import settings
 from geojson import Feature, Polygon, load
-from math import sin, cos
+from math import sin, cos, sqrt, atan2
 from os import listdir, getcwd
-from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest, roomMapper, roomMapperResponse, roomMapperRequest, doorMapper, doorMapperResponse, doorMapperRequest
+from locationMapper.srv import locationMapper, locationMapperResponse, locationMapperRequest, roomMapper, roomMapperResponse, roomMapperRequest, doorMapper, doorMapperResponse, doorMapperRequest, doorObjectMapper, doorObjectMapperResponses
 from statistics import mean 
 import angles
 from scipy.spatial.transform import Rotation
@@ -22,7 +22,7 @@ def getRoomsData():
 
 
 #https://bryceboe.com/2006/10/23/line-segment-intersection-algorithm/
-def ccw(p1, p2, p3) -> bool:
+def ccw(p1, p2, p3):
     return (p3[1]-p1[1]) * (p2[0]-p1[0]) > (p2[1]-p1[1]) * (p3[0]-p1[0])
 
 
@@ -30,9 +30,9 @@ def intersect(l1, l2):
     return ccw(l1[0], l2[0], l2[1]) != ccw(l1[1], l2[0], l2[1]) and ccw(l1[0], l1[1], l2[0]) != ccw(l1[0], l1[1], l2[1])
 
 
-def isPointInsidePolygon(point, polygonCords) -> bool:
-    orthLine = ((point[0], point[1]), (point[0], point[1] + settings.POLYGON_CORNOR_FRAME))
-    inside: bool = False
+def isPointInsidePolygon(point, polygonCords):
+    orthLine = ((point[0], point[1]), (point[0], point[1] + settings.POLYGON_CORNER_FRAME))
+    inside = False
     for i in range(len(polygonCords)):
         if intersect(orthLine, ((polygonCords[i]), (polygonCords[(i+1) % len(polygonCords)]))):
             inside = not inside
@@ -40,8 +40,8 @@ def isPointInsidePolygon(point, polygonCords) -> bool:
     return inside
 
 
-def mapToRoom(location: locationMapperRequest) -> locationMapperResponse:
-    response: locationMapperResponse = locationMapperResponse()
+def mapToRoom(location):
+    response = locationMapperResponse()
     roomsInfo = getRoomsData()
 
     for i in roomsInfo.keys():
@@ -53,8 +53,8 @@ def mapToRoom(location: locationMapperRequest) -> locationMapperResponse:
     return response
 
 
-def mapToLoc(request: roomMapperRequest) -> roomMapperResponse:
-    response: roomMapperResponse = roomMapperResponse()
+def mapToLoc(request):
+    response = roomMapperResponse()
     roomInfo = getRoomsData()[request.room]
 
     if not roomInfo:
@@ -65,7 +65,7 @@ def mapToLoc(request: roomMapperRequest) -> roomMapperResponse:
 
     return response
 
-def getDoorSegment(room: str):
+def getDoorSegment(room):
     geojsonFiles = listdir(getcwd() + settings.geojsondir)
     for file in geojsonFiles:
         with open(f"{getcwd() + settings.geojsondir}/{file}") as f:
@@ -79,8 +79,8 @@ def midPoint(line):
 def distance(p1, p2):
     return sqrt(pow(p1[0]-p2[0], 2) + pow(p1[1]-p2[1], 2))
 
-def doorToMove(request: doorMapperRequest) -> doorMapperResponse:
-    response: doorMapperResponse = doorMapperResponse()
+def doorToMove(request):
+    response = doorMapperResponse()
 
     quatRotation = Rotation.from_quat(request.orientation)
     eulerRotation = quatRotation.as_euler('xyz', degrees=False)
@@ -116,7 +116,21 @@ def doorToMove(request: doorMapperRequest) -> doorMapperResponse:
 
     return response
 
+def mapToDoor(req):
+    res = doorObjectMapperResponses()
+
+    diff = (req.doorPose.position.x - req.pose.position.x, req.doorPose.position.y - req.pose.position.y)
+    diffTheta = atan2(diff[1], diff[0])
+
+    quatRotation = Rotation.from_quat(req.doorPose.orientation)
+    eulerRotation = quatRotation.as_euler('xyz', degrees=False)
+    projTheta = eulerRotation[2]
+
+    res.degree = angles.shortest_angular_distance(projTheta, diffTheta)
+    return res
+
 rospy.init_node(settings.serviceName, anonymous=True)
 locMapper = rospy.Service(settings.locationServiceName, locationMapper, mapToRoom)
 roomMapper = rospy.Service(settings.roomServiceName, roomMapper, mapToLoc)
+doorRoomMapper = rospy.Service(settings.doorObjectServiceName, doorObjectMapper, mapToDoor)
 rospy.spin()
